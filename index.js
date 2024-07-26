@@ -47,7 +47,7 @@ app.use('/images', express.static('upload/images'))
 
 app.post("/upload", upload.single('product'), (req, res) => {
     res.json({
-        sucecess: 1,
+        success: 1,
         image_url: `http://localhost:${port}/images/${req.file.filename}`
     })
 })
@@ -92,6 +92,8 @@ const Product = mongoose.model("Product", {
 
 // método para adicionar um novo produto
 app.post('/addproduct', async (req, res) => {
+    console.log("Dados do produto recebido: ", req.body);
+
     let products = await Product.find({});
     let id;
 
@@ -111,7 +113,7 @@ app.post('/addproduct', async (req, res) => {
         new_price: req.body.new_price,
         old_price: req.body.old_price,
     });
-    console.log(product);
+    console.log("Produto a ser salvo:", product);
 
     await product.save();
     console.log("Saved");
