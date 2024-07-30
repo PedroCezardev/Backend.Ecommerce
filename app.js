@@ -18,6 +18,7 @@ app.get("/ping", (req, res) => {
   res.send("pong");
 });
 
+//método para adicionar arquivo de imagem na pasta images
 const storage = multer.diskStorage({
   destination: "./upload/images",
   filename: (req, file, cb) => {
@@ -25,15 +26,31 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({storage: storage});
+const upload = multer({storage: storage}).fields([
+  { name: 'product', maxCount: 50 }, // Substitua 'product' pelo nome do campo que você espera
+  { name: 'anotherField', maxCount: 10 } // Adicione mais campos conforme necessário
+]);
 
 app.use('/images', express.static('upload/images'))
 
-app.post("/upload", upload.single('product'), (req, res) => {
-  res.json({
-    success: 1,
-    image_url: `http://${serverConfig.hostname}:${serverConfig.port}/images/${req.file.filename}`
-  });
+// método 
+app.post("/upload", upload, (req, res) => {
+  if (req.files && req.files.product) {
+    const files = req.files.product.map(file => ({
+      success: 1,
+      image_url: `http://${serverConfig.hostname}:${serverConfig.port}/images/${file.filename}`
+    }));
+
+    res.json({
+      success: 1,
+      image_url: files[0].image_url
+    });
+  } else {
+    res.json({
+      success: 0,
+      message: 'Nenhum arquivo enviado.'
+    });
+  }
 });
 
 app.post('/addproduct', async (req, res) => {
@@ -42,8 +59,8 @@ app.post('/addproduct', async (req, res) => {
   let products = await Product.find({});
   let id;
 
-  if(products.length > 0){
-    let last_product_array = products.slice( -1 );
+  if (products.length > 0) {
+    let last_product_array = products.slice(-1);
     let last_product = last_product_array[0];
     id = last_product.id + 1;
   } else {
@@ -61,13 +78,17 @@ app.post('/addproduct', async (req, res) => {
 
   console.log("Produto a ser salvo:", product);
 
-  await product.save();
-  console.log("Saved");
-
-  res.json({
-    success: true,
-    name: req.body.name,
-  });
+  try {
+    await product.save();
+    console.log("Produto salvo com sucesso.");
+    res.json({
+      success: true,
+      name: req.body.name,
+    });
+  } catch (error) {
+    console.error("Erro ao salvar produto:", error);
+    res.status(500).json({ success: false, message: "Erro ao salvar produto." });
+  }
 });
 
 app.post('/removeproduct', async (req, res) => {
@@ -137,8 +158,29 @@ app.post('/login', async (req, res) => {
       res.json({success: false, errors: "Senha Incorreta"});
     }
   } else {
-    res.json({success: false, errors: "ID de e-mail incorreto"})
+    res.json({success: false, errors: "E-mail não cadastrado"})
   }
+})
+
+// criando endpoint para dados das novas coleções
+app.get('/newcollections', async (req, res) => {
+  let products = await Product.find({});
+  let newcollection = products.slice(1).slice(-8);
+  console.log("Novas coleções Buscadas")
+  res.send(newcollection);
+})
+
+// criando endpoint para dados da sessão para mulheres
+app.get('/popularInWomen', async (req, res) => {
+  let products = await Product.find({category:"women"});
+  let popular_in_women = products.slice(0,4);
+  console.log("Popular em mulheres buscado");
+  res.send(popular_in_women);
+})
+
+// criando endpoint para adicionar produtos ao carrinho 
+app.post('/addtocart', async (req, res) => {
+
 })
 
 app.listen(serverConfig.port, (error) => {

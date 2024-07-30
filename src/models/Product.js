@@ -7,13 +7,13 @@ const Product = mongoose.model("Product", {
   },
   name: {
     type: String,
-    requeired: true,
-  },
-  image: {
-    type: String,
     required: true,
   },
   category: {
+    type: String,
+    required: true,
+  },
+  image: {
     type: String,
     required: true,
   },
