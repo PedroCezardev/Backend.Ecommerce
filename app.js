@@ -9,6 +9,7 @@ const { serverConfig } = require("./config");
 
 const Product = require("./src/models/Product");
 const User = require("./src/models/User");
+const { log } = require("console");
 
 app.use(express.json());
 app.use(cors());
@@ -178,9 +179,53 @@ app.get('/popularInWomen', async (req, res) => {
   res.send(popular_in_women);
 })
 
-// criando endpoint para adicionar produtos ao carrinho 
-app.post('/addtocart', async (req, res) => {
+// criando middelware para buscar o usuário
+  const fetchUser = async (req, res, next) => {
+    const token = req.header('auth-token');
+    if (!token) {
+      res.status(401).send({errors: "Por favor, autentique usando token válido"})
+    } else {
+      try {
+        const data = jwt.verify(token, 'secret_ecom');
+        req.user = data.user;
+        next();
+      } catch (error) {
+        res.status(401).end({errors: "Por favor, autentique usando token válido"})
+      }
+    }
+  }
 
+// criando endpoint para adicionar produtos ao carrinho 
+app.post('/addtocart', fetchUser,async (req, res) => {
+  console.log("adicionado", req.body.itemId);
+  
+  let userData = await User.findOne({_id: req.user.id});
+  userData.cartData[req.body.itemId] += 1;
+
+  await User.findOneAndUpdate({_id: req.user.id}, {cartData: userData.cartData});
+  res.send("Adicionado");
+
+})
+
+// criadno endpoint para remover o produto do carrinho
+app.post('/removeItemCart', fetchUser, async (req, res) => {
+  console.log("removido", req.body.itemId);
+
+  let userData = await User.findOne({_id: req.user.id});
+  if( userData.cartData[req.body.itemId] > 0 )
+
+  userData.cartData[req.body.itemId] -= 1;
+
+  await User.findOneAndUpdate({_id: req.user.id}, {cartData: userData.cartData});
+  res.send("Removido");
+})
+
+// criando endpoint para buscar carrinho
+app.post('/getcart', fetchUser, async ( req, res) => {
+  console.log("Carrinho buscado");
+
+  let userData = await User.findOne({_id: req.user.id});
+  res.json(userData.cartData);
 })
 
 app.listen(serverConfig.port, (error) => {
