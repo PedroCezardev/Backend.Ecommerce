@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 const multer = require("multer");
 const path = require("path");
 const cors = require("cors");
-
+const bcrypt = require("bcrypt")
 const { serverConfig } = require("./config");
 
 const Product = require("./src/models/Product");
@@ -123,10 +123,16 @@ app.post('/signup', async (req, res) => {
     cart[i] = 0;
   }
 
+  const {password} = req.body;
+  const saltRounds = 10;
+
+  const hashedPassword = await bcrypt.hash(password, saltRounds)
+
+
   const user = new User({
     name: req.body.username,
     email: req.body.email,
-    password: req.body.password,
+    password: hashedPassword,
     cartData: cart,
   })
 
@@ -146,7 +152,7 @@ app.post('/login', async (req, res) => {
   let user = await User.findOne({email:req.body.email});
 
   if (user) {
-    const passCompare = req.body.password === user.password;
+    const passCompare =  bcrypt.compare(req.body.password === user.password);
     if (passCompare) {
       const data = {
         user: {
