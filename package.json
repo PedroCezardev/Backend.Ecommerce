@@ -4,7 +4,8 @@
   "description": "Backend do projeto Ecommerce",
   "main": "app.js",
   "scripts": {
-    "start": "nodemon app.js"
+    "start": "nodemon app.js",
+    "migrate-deploy": "prisma migrate deploy"
   },
   "author": "Pedro Cezar",
   "license": "ISC",
