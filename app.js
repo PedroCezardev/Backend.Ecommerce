@@ -6,10 +6,13 @@ const path = require("path");
 const cors = require("cors");
 const bcrypt = require("bcrypt")
 const { serverConfig } = require("./config");
+require('dotenv').config();
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
 
 const Product = require("./src/models/Product");
 const User = require("./src/models/User");
 const { log } = require("console");
+const { name } = require("ejs");
 
 app.use(express.json());
 app.use(cors());
@@ -18,6 +21,46 @@ app.use(cors());
 app.get("/ping", (req, res) => {
   res.send("pong");
 });
+
+//método de pagamento
+
+app.post('/checkout', async (req, res) =>{
+  const { items } = req.body;
+  
+  const line_items = items.map(item => ({
+    price_data: {
+      currency: 'brl',
+      product_data: {
+        name: item.name,
+      },
+      unit_amount: item.price * 100, // assuming item.price is in BRL
+    },
+    quantity: item.quantity,
+  }));
+
+  try {
+    const session = await stripe.checkout.sessions.create({
+      line_items,
+      mode: 'payment',
+      success_url: `${process.env.BASE_URL}/complete`,
+      cancel_url: `${process.env.BASE_URL}/cancel`,
+    });
+
+    res.json({ url: session.url });
+  } catch (error) {
+    console.error('Error creating Stripe session:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+  
+})
+
+app.get('/complete', (req,res) =>{
+  res.send('Paymente realized with sucess')
+})
+
+app.get('/cancel', (req, res) =>{
+  res.redirect('http://localhost:5173/cart')
+})
 
 //método para adicionar arquivo de imagem na pasta images
 const storage = multer.diskStorage({
